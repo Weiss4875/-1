@@ -1,4 +1,3 @@
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -21,7 +20,6 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody2D rb;
     private Animator anim;
-
     private float x;
 
     // Dash
@@ -42,100 +40,70 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        // Input
         x = Input.GetAxis("Horizontal");
 
-        // Jump
         if (Input.GetButtonDown("Jump") && isGrounded)
-        {
             jumpRequest = true;
-        }
 
-        // Dash
         if (Input.GetMouseButtonDown(0) && dashCooldownTimer <= 0)
         {
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             dashDirection = (mousePos - (Vector2)transform.position).normalized;
-
             isDashing = true;
             dashTimer = dashTime;
-            dashCooldownTimer = dashCooldown;
-            anim.Play("Dash", 0, 0f);
+            dashCooldownTimer = dashCooldown; 
         }
 
-        // Cooldown
         if (dashCooldownTimer > 0)
             dashCooldownTimer -= Time.deltaTime;
     }
 
     void FixedUpdate()
     {
-        // Ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
-        // Dash
         if (isDashing)
         {
             dashTimer -= Time.deltaTime;
             rb.linearVelocity = dashDirection * dashForce;
-
             if (dashTimer <= 0)
                 isDashing = false;
             return;
         }
-       
 
-        // Horizontal movement
         rb.linearVelocity = new Vector2(x * speed, rb.linearVelocity.y);
 
-        // Flip
-        if (x > 0)
-            transform.eulerAngles = new Vector3(0, 0, 0);
-        else if (x < 0)
-            transform.eulerAngles = new Vector3(0, 180, 0);
-
+        if (x > 0) transform.eulerAngles = Vector3.zero;
+        else if (x < 0) transform.eulerAngles = new Vector3(0, 180, 0);
 
         if (jumpRequest)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpVelocity);
             jumpRequest = false;
         }
-        //better jump
-        if (rb.linearVelocity.y < 0)
-        {
-            rb.gravityScale = fallMultiplier;
-        }
-        else if (rb.linearVelocity.y > 0 && !Input.GetButton("Jump"))
-        {
-            rb.gravityScale = lowJumpMultiplier;
-        }
-        else
-        {
-            rb.gravityScale = 1f;
-        }
 
-        //Animation control
-        int state = 0;
+        // Better jump
+        if (rb.linearVelocity.y < 0)
+            rb.gravityScale = fallMultiplier;
+        else if (rb.linearVelocity.y > 0 && !Input.GetButton("Jump"))
+            rb.gravityScale = lowJumpMultiplier;
+        else
+            rb.gravityScale = 1f;
+        // 動畫
+        int State;
         if (!isGrounded)
         {
-            state = 4;
-        }
-        else if (isGrounded)
-        {
-            if (Mathf.Abs(x) > 0.1f)
-                state = 1; 
-            else
-                state = 0; 
-        }
-        else
-        {
             if (rb.linearVelocity.y > 0.1f)
-                state = 2;
-              else
-                state = 3; 
+                State = 2; // 上升
+            else
+                State = 3; // 下降
         }
+        else if (Mathf.Abs(x) > 0.1f)
+            State = 1;     // 跑步
+        else
+            State = 0;     // 待機
 
-        anim.SetInteger("State", state);
+        anim.SetInteger("State", State);
     }
 
     private void OnDrawGizmos()
